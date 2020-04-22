@@ -19,15 +19,13 @@ print('__file__={0:<35} | __name__={1:<20} | __package__={2:<20}'.format(__file_
 
 class CNNIndividual:
 
-    def __init__(self):
-        self.speed = 42
+    def __init__(self, genome):
+        self.__genome = genome
 
     def hello(self):
         return "Hello world!"
 
-    def genome(self):
-        return []
-    def build(self, genome=None):
+    def build(self):
         model = tf.keras.models.Sequential([
             # Note the input shape is the desired size of the image 300x300 with 3 bytes color
             # This is the first convolution

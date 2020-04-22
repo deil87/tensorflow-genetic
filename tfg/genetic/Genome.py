@@ -1,7 +1,6 @@
 
 
 class Genome:
-
-    def __init__(self):
-        self.speed = 42
-
+    """ TODO Consider to make Genome to store genes in corresponding fields instead of array."""
+    def __init__(self, genes):
+        self.__genes = genes

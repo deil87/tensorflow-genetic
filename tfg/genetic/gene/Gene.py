@@ -1,6 +1,6 @@
 
 
-class Genome:
+class Gene:
 
     def __init__(self):
         self.speed = 42

@@ -1,4 +1,5 @@
-from tfg.genetic import Gene
+from tfg.genetic.gene.Gene import Gene
+
 
 class OutputActivationGene(Gene):
 

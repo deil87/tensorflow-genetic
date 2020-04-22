@@ -1,7 +1,8 @@
-from tfg.genetic import Gene
+from tfg.genetic.gene.Gene import Gene
 
-class AugmentationGene(Gene):
+
+class OptimizerGene(Gene):
 
     def mutate(self):
-        print("AugmentationGene has been mutated")
+        print("OptimizerGene has been mutated")
         return self
