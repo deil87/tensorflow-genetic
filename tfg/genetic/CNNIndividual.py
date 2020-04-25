@@ -9,9 +9,13 @@ from keras.layers import Dense, Dropout, Flatten, Conv2D, MaxPool2D
 from keras.optimizers import RMSprop
 from keras.preprocessing.image import ImageDataGenerator
 
+from tfg.DataContext import DataContext
+from tfg.genetic.gene.AugmentationGene import AugmentationGene
+from tfg.genetic.gene.Gene import Gene
+
 print('__file__={0:<35} | __name__={1:<20} | __package__={2:<20}'.format(__file__,__name__,str(__package__)))
 
-
+# Consider to rename to CNNGenome and build() should return CNNIndividual
 class CNNIndividual:
 
     def __init__(self, genome):
@@ -20,8 +24,9 @@ class CNNIndividual:
     def hello(self):
         return "Hello world!"
 
+    # Returns model and corresponding dataGenerator
     def build(self):
-        #TODO we should be more generic and support different CNNs. Tensorflow, Keras, GluonCV, MXNet etc.
+        # TODO we should be more generic and support different CNNs. Tensorflow, Keras, GluonCV, MXNet etc.
         model = Sequential()
 
         model.add(Conv2D(filters=32, kernel_size=(5, 5), padding='Same',
@@ -44,6 +49,14 @@ class CNNIndividual:
         # Should be intitialised based on __genome
         optimizer = RMSprop(lr=0.001, rho=0.9, epsilon=1e-08, decay=0.0)
         model.compile(optimizer=optimizer, loss="categorical_crossentropy", metrics=["accuracy"])
-
         model.summary()
-        return model
+
+        # Augmentation gene
+        augmentation_gene:AugmentationGene = None
+        for gene in self.__genome:
+            if isinstance(gene, AugmentationGene):
+                augmentation_gene = gene
+
+        datagen = augmentation_gene.build()
+
+        return (model, datagen)
