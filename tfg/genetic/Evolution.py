@@ -1,12 +1,18 @@
 from keras_preprocessing.image import ImageDataGenerator
 
 from tfg.DataContext import DataContext
+from tfg.Evaluator import Evaluator, EvaluatedIndividual
 from tfg.genetic.Population import Population
-from tfg.genetic.CNNIndividual import CNNIndividual
+from tfg.genetic.CNNGenome import CNNGenome
 from tfg.genetic.gene.AugmentationGene import AugmentationGene
 from tfg.genetic.gene.OptimizerGene import OptimizerGene
 from tfg.genetic.gene.OutputActivationGene import OutputActivationGene
 from tfg.genetic.gene.SequentialGene import SequentialGene
+from toolz import pipe
+import tensorflow as tf
+from numpy.random import seed as np_random_seed
+import random
+import os
 
 
 class Evolution:
@@ -32,43 +38,41 @@ class Evolution:
 
     """
 
-    def __init__(self, data_context):
+    def __init__(self, data_context, seed):
         print("Evolution has been created")
         self.__data_context = data_context
+        self.__seed = seed
+
+        os.environ['PYTHONHASHSEED'] = str(seed)
+        random.seed(seed)
+        np_random_seed(seed)
+        tf.random.set_seed(seed)
 
     def run(self):
         print("Evolution has been launched")
         population = Population([
-            CNNIndividual(
+            CNNGenome(
                 [AugmentationGene(), SequentialGene(), OptimizerGene(), OutputActivationGene()]
-            ),CNNIndividual(
+            ),CNNGenome(
                 [AugmentationGene(), SequentialGene(), OptimizerGene(), OutputActivationGene()]
-            ),CNNIndividual(
+            ),CNNGenome(
                 [AugmentationGene(), SequentialGene(), OptimizerGene(), OutputActivationGene()]
             )
         ])
 
-        #Evaluate population
-        first_indiv:CNNIndividual = population.get_indevidual(0)
-        (model, datagen) = first_indiv.build()
+        #Build population
+        individuals = list(map(lambda cnn_ind: cnn_ind.build(self.__seed), population.get_individuals()))
+        print("Individuals" + str(individuals))
 
-        # Fit datagen
-        (X_train, Y_train) = self.__data_context.get_train()
-        datagen.fit(X_train)
+        # Evaluate population
+        evaluator = Evaluator()
+        ev_individuals = list(map(lambda cnn_ind: evaluator.evaluate(cnn_ind, self.__data_context), individuals))
 
+        # Print evaluation results
+        for idx, ev_ind in enumerate(ev_individuals):
+            ev_ind: EvaluatedIndividual = ev_ind
+            print("Evaluated {} individual with values = {}".format(idx, ev_ind.get_fitness().get_valid_loss()))
         # TODO Select parents for cross-over and mutations
 
 
-
-        # TODO should come from corresponding genes
-        epochs = 5  # this probably should be a heuristic or be replaced with: min(early stopping, N)
-        batch_size = 86
-
-        history = model.fit_generator(datagen.flow(X_train, Y_train, batch_size=batch_size),
-                                      epochs=epochs, validation_data=self.__data_context.get_valid(),
-                                      verbose=2, steps_per_epoch=X_train.shape[0] // batch_size
-                                      , callbacks=[])
-        print("History\n")
-        print('Loss training: {} |  Loss valid: {}'.format(history.history['loss'], history.history['val_loss']))
-        print('Accuracy training: {} |  accuracy valid: {}'.format(history.history['accuracy'], history.history['val_accuracy']))
         return self

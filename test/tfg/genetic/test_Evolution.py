@@ -24,21 +24,11 @@ def captured_output():
 
 class EvolutionTestCase(unittest.TestCase):
 
-    # def test_something(self):
-    #     evolution = Evolution(None)
-    #
-    #     self.assertTrue(isinstance(evolution, Evolution))
-    #     with captured_output() as (out, err):
-    #         evolution.run()
-    #
-    #     output = out.getvalue().strip()
-    #     self.assertEqual(output, 'Evolution has been launched\nPopulation has been created')
-
     def test_mnist(self):
         # resource_path = os.path.join(os.path.split(__file__)[0], "resources")
         train_path = pathlib.Path(__file__).parent.parent.parent / 'data' / 'mnist' / 'train.csv'
         test_path = pathlib.Path(__file__).parent.parent.parent / 'data' / 'mnist' / 'test.csv'
-        print(train_path)
+        # print(train_path)
         train = pd.read_csv(train_path)[:3000]
         test = pd.read_csv(test_path)
         # print(train.head())
@@ -63,7 +53,8 @@ class EvolutionTestCase(unittest.TestCase):
         from sklearn.model_selection import train_test_split
         X_train, X_val, Y_train, Y_val = train_test_split(X_train, Y_train, test_size=0.2, random_state=1234)
         data_context = DataContext(train = (X_train, Y_train), valid=(X_val, Y_val), test=test)
-        evolution = Evolution(data_context=data_context)
+        # print(X_train)
+        evolution = Evolution(data_context=data_context, seed=1234)
 
         self.assertTrue(isinstance(evolution, Evolution))
 
