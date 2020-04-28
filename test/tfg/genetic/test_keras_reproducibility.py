@@ -5,7 +5,7 @@ import os
 
 from keras import Sequential
 from keras.initializers import glorot_uniform, Orthogonal
-from keras.layers import Dense
+from keras.layers import Dense, Conv2D, MaxPool2D, Dropout
 
 # neural network with keras tutorial
 from keras.legacy import interfaces
@@ -51,6 +51,45 @@ class KerasReproducibility(unittest.TestCase):
             # history = model.fit(X, y, epochs=5, batch_size=10,steps_per_epoch=300, shuffle=False)
             accuracy = history.history['accuracy'][-1]
             print("Attempt {} ,accuracy: {}".format(attempt, accuracy))
+
+    def test_config_deserialisation(self):
+        # class MyClass:
+        #     def __init__(self, foo, bar):
+        #         self.foo = foo
+        #         self.bar = bar
+        #
+        #     def __eq__(self, other):
+        #         if not isinstance(other, MyClass):
+        #             # don't attempt to compare against unrelated types
+        #             return NotImplemented
+        #
+        #         return self.foo == other.foo and self.bar == other.bar
+        #
+        # self.assertEqual(MyClass('foo', 'bar'), MyClass('foo', 'bar'))
+
+        seed = 1234
+
+        tf.random.set_seed(seed)
+        model = Sequential()
+        model.add(Conv2D(filters=64, kernel_size=(3, 3), padding='Same',
+                         activation='relu'))
+        model.add(MaxPool2D(pool_size=(2, 2), strides=(2, 2)))
+        model.add(Dropout(0.25, seed=seed))
+
+        model.add(Dense(12, input_dim=8, activation='relu', kernel_initializer='glorot_uniform', seed=seed))
+        model.add(Dense(8, activation='relu', seed=seed))
+        model.add(Dense(1, activation='sigmoid', seed=seed))
+
+        config = model.get_config()
+        deserialized_model = Sequential.from_config(config)
+        # self.assertEqual(model, deserialized_model)
+        self.assertEqual(model.layers[0].input.shape, deserialized_model.layers[0].input.shape)
+
+    def test_random_uniform(self):
+        res = random.uniform(0,1) > 0.5
+        self.assertEqual(res, True)
+
+
 
 
 if __name__ == '__main__':

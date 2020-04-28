@@ -1,3 +1,5 @@
+import copy
+
 import toolz
 from keras_preprocessing.image import ImageDataGenerator
 
@@ -77,19 +79,22 @@ class Evolution:
         # Print evaluation results
         self.__print_ev_individuals(ev_individuals)
 
-        # TODO Select parents for cross-over and mutations
-        # sorted_ev_individuals = sorted(ev_individuals, key=lambda ev_individual: ev_individual.get_fitness().get_valid_loss(), reverse=True)
-        # self.__print_ev_individuals(sorted_ev_individuals)
-
-        parents = toolz.topk(3, ev_individuals, key=lambda ev_individual: ev_individual.get_fitness().get_valid_loss())
+        # TODO Select parents for cross-over and mutations. Note minus sign to pick smallest values
+        parents = toolz.topk(3, ev_individuals, key=lambda ev_individual: -ev_individual.get_fitness().get_valid_loss())
         self.__print_ev_individuals(parents)
 
         # Crossover or mutate individuals
         mutator = Mutator()
-        mutated_parents = list(map(lambda parent: mutator.mutate(parent.get_original_genome()), parents))
+        offspring_genomes = list(map(lambda parent: mutator.mutate(parent.get_original_genome()), copy.deepcopy(parents)))
+
+        # Materialize offspring
+        offspring = list(map(lambda offspring_genome: offspring_genome.build(self.__seed), offspring_genomes))
 
         # Evaluate offspring
+        ev_offspring = list(map(lambda offspring_ind: evaluator.evaluate(offspring_ind, self.__data_context), offspring))
 
+        print("\n Evaluated offspring \n")
+        self.__print_ev_individuals(ev_offspring)
         # Combine original population and offspring
 
         # Run survival phase
