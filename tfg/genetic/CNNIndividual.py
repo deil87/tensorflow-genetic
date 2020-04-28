@@ -16,9 +16,13 @@ from tfg.genetic.gene.Gene import Gene
 
 class CNNIndividual:
 
-    def __init__(self, model, datagen):
+    def __init__(self, genome, model, datagen):
+        self.__genome = genome
         self.__model = model
         self.__datagen = datagen
+
+    def get_genome(self):
+        return self.__genome
 
     def get_model(self):
         return self.__model

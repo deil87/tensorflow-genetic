@@ -1,3 +1,4 @@
+from tfg.genetic.Fitness import Fitness
 from tfg.genetic.CNNIndividual import CNNIndividual
 
 
@@ -53,28 +54,18 @@ class EvaluatedIndividual:
 
     """
 
-    def __init__(self, individual, fitness):
+    def __init__(self, individual, fitness: Fitness):
         self.__individual = individual
         self.__fitness = fitness
 
     def get_individual(self):
         return self.__individual
 
+    def get_original_genome(self):
+        individual: CNNIndividual = self.__individual
+        return individual.get_genome()
 
     def get_fitness(self):
         return self.__fitness
 
 
-class Fitness:
-    """...
-
-        """
-
-    def __init__(self, metrics_as_map):
-        self.__metrics = metrics_as_map
-
-    def get_valid_loss(self):
-        return self.__metrics['val_loss']
-
-    def get_valid_accuracy(self):
-        return self.__metrics['val_accuracy']

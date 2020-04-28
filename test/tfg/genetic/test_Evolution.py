@@ -29,7 +29,7 @@ class EvolutionTestCase(unittest.TestCase):
         train_path = pathlib.Path(__file__).parent.parent.parent / 'data' / 'mnist' / 'train.csv'
         test_path = pathlib.Path(__file__).parent.parent.parent / 'data' / 'mnist' / 'test.csv'
         # print(train_path)
-        train = pd.read_csv(train_path)[:3000]
+        train = pd.read_csv(train_path)[:100]
         test = pd.read_csv(test_path)
         # print(train.head())
         # print(test.head())
