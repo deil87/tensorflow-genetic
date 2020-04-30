@@ -1,5 +1,7 @@
 import copy
+import math
 
+import numpy as np
 import toolz
 from keras_preprocessing.image import ImageDataGenerator
 
@@ -42,15 +44,39 @@ class Evolution:
 
     """
 
-    def __init__(self, data_context, seed):
+    def __init__(self, data_context, max_runtime, seed):
+        """Configures evolution process for training.
+
+                # Arguments
+                    data_context: DataContext instance that provide all the data to train on
+                    max_runtime: int maximum number of seconds for this run
+                    metrics: List of metrics to be evaluated by the model
+
+                """
         print("Evolution has been created")
         self.__data_context = data_context
+        self.__max_runtime = max_runtime
         self.__seed = seed
 
         os.environ['PYTHONHASHSEED'] = str(seed)
         random.seed(seed)
         np_random_seed(seed)
         tf.random.set_seed(seed)
+
+    # credit goes to Georgy Chichladze. Thanks!
+    def generate_timeboxes(self, n_boxes, max_runtime):
+
+        def f(coefs, x):
+            return coefs * np.exp(x)
+
+        def lengths(coef):
+            results = list(map(lambda x: f(coef, x), range(0, n_boxes)))
+            return results
+
+        sum_of_exps = sum(list(map(lambda x: np.exp(x), range(0, n_boxes))))
+        c = max_runtime / sum_of_exps
+
+        return lengths(c)
 
     def run(self):
         print("Evolution has been launched")

@@ -1,5 +1,7 @@
+import math
 import unittest
 import pandas as pd
+import numpy as np
 import pathlib
 import os
 
@@ -9,6 +11,8 @@ import sys
 from contextlib import contextmanager
 from io import StringIO
 import matplotlib.pyplot as plt
+from sympy import *
+from sympy import Symbol
 
 
 @contextmanager
