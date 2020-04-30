@@ -19,6 +19,7 @@ import tensorflow as tf
 from numpy.random import seed as np_random_seed
 import random
 import os
+import time
 
 
 class Evolution:
@@ -44,7 +45,7 @@ class Evolution:
 
     """
 
-    def __init__(self, data_context, max_runtime, seed):
+    def __init__(self, data_context, max_runtime, seed, number_of_evolutions = 3):
         """Configures evolution process for training.
 
                 # Arguments
@@ -55,6 +56,7 @@ class Evolution:
                 """
         print("Evolution has been created")
         self.__data_context = data_context
+        self.__number_of_evolutions = number_of_evolutions
         self.__max_runtime = max_runtime
         self.__seed = seed
 
@@ -78,6 +80,9 @@ class Evolution:
 
         return lengths(c)
 
+    # current_milli_time = lambda: int(round(time.time() * 1000))
+    current_seconds_time = lambda self: int(round(time.time()))
+
     def run(self):
         print("Evolution has been launched")
         population = Population([
@@ -94,36 +99,54 @@ class Evolution:
             )
         ])
 
-        #Build population
-        individuals = list(map(lambda cnn_ind: cnn_ind.build(self.__seed), population.get_individuals()))
-        print("Individuals" + str(individuals))
 
-        # Evaluate population
-        evaluator = Evaluator()
-        ev_individuals = list(map(lambda cnn_ind: evaluator.evaluate(cnn_ind, self.__data_context), individuals))
+        timeboxes = self.generate_timeboxes(self.__number_of_evolutions, self.__max_runtime)
 
-        # Print evaluation results
-        self.__print_ev_individuals(ev_individuals)
+        for tb_idx, timebox in enumerate(timeboxes):
+            start_tb_time = self.current_seconds_time()
 
-        # TODO Select parents for cross-over and mutations. Note minus sign to pick smallest values
-        parents = toolz.topk(3, ev_individuals, key=lambda ev_individual: -ev_individual.get_fitness().get_valid_loss())
-        self.__print_ev_individuals(parents)
+            generation_number = 1
+            while self.current_seconds_time() - start_tb_time < timebox:
+                #Build population
+                individuals = list(map(lambda cnn_ind: cnn_ind.build(self.__seed), population.get_individuals()))
+                print("Individuals" + str(individuals))
 
-        # Crossover or mutate individuals
-        mutator = Mutator()
-        offspring_genomes = list(map(lambda parent: mutator.mutate(parent.get_original_genome()), copy.deepcopy(parents)))
+                # Evaluate population
+                evaluator = Evaluator()
+                ev_individuals = list(map(lambda cnn_ind: evaluator.evaluate(cnn_ind, self.__data_context), individuals))
 
-        # Materialize offspring
-        offspring = list(map(lambda offspring_genome: offspring_genome.build(self.__seed), offspring_genomes))
+                # Print evaluation results
+                self.__print_ev_individuals(ev_individuals)
 
-        # Evaluate offspring
-        ev_offspring = list(map(lambda offspring_ind: evaluator.evaluate(offspring_ind, self.__data_context), offspring))
+                # TODO Select parents for cross-over and mutations. Note minus sign to pick smallest values
+                parents = toolz.topk(3, ev_individuals, key=lambda ev_individual: -ev_individual.get_fitness().get_valid_loss())
+                self.__print_ev_individuals(parents)
 
-        print("\n Evaluated offspring \n")
-        self.__print_ev_individuals(ev_offspring)
-        # Combine original population and offspring
+                # Crossover or mutate individuals
+                mutator = Mutator()
+                offspring_genomes = list(map(lambda parent: mutator.mutate(parent.get_original_genome()), copy.deepcopy(parents)))
 
-        # Run survival phase
+                # Materialize offspring
+                offspring = list(map(lambda offspring_genome: offspring_genome.build(self.__seed), offspring_genomes))
+
+                # Evaluate offspring
+                ev_offspring = list(map(lambda offspring_ind: evaluator.evaluate(offspring_ind, self.__data_context), offspring))
+
+                print("\n Evaluated offspring \n")
+                self.__print_ev_individuals(ev_offspring)
+
+                # Combine original population and offspring
+                expanded_individuals = ev_individuals + ev_offspring
+
+                # Run survival phase for evaluated individuals
+                survived = toolz.topk(len(individuals), expanded_individuals,
+                                     key=lambda ev_individual: -ev_individual.get_fitness().get_valid_loss())
+
+                survived_genomes = list(map(lambda survived_ind: mutator.mutate(survived_ind.get_original_genome()), survived))
+
+                population = Population(individuals=survived_genomes)
+                print("Evolution #{} | generation #{} is finished".format(tb_idx, generation_number))
+                generation_number += 1
 
         return self
 

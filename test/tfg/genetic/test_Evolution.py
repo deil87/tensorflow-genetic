@@ -58,7 +58,7 @@ class EvolutionTestCase(unittest.TestCase):
         X_train, X_val, Y_train, Y_val = train_test_split(X_train, Y_train, test_size=0.2, random_state=1234)
         data_context = DataContext(train = (X_train, Y_train), valid=(X_val, Y_val), test=test)
         # print(X_train)
-        evolution = Evolution(data_context=data_context, seed=1234)
+        evolution = Evolution(data_context=data_context, max_runtime= 100, seed=1234)
 
         self.assertTrue(isinstance(evolution, Evolution))
 
