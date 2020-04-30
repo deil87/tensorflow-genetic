@@ -33,7 +33,7 @@ class EvolutionTestCase(unittest.TestCase):
         train_path = pathlib.Path(__file__).parent.parent.parent / 'data' / 'mnist' / 'train.csv'
         test_path = pathlib.Path(__file__).parent.parent.parent / 'data' / 'mnist' / 'test.csv'
         # print(train_path)
-        train = pd.read_csv(train_path)[:100]
+        train = pd.read_csv(train_path)
         test = pd.read_csv(test_path)
         # print(train.head())
         # print(test.head())
@@ -53,12 +53,9 @@ class EvolutionTestCase(unittest.TestCase):
         Y_train = to_categorical(Y_train, num_classes=10)
         # print(Y_train)
 
-        # Split the train and the validation set for the fitting
-        from sklearn.model_selection import train_test_split
-        X_train, X_val, Y_train, Y_val = train_test_split(X_train, Y_train, test_size=0.2, random_state=1234)
-        data_context = DataContext(train = (X_train, Y_train), valid=(X_val, Y_val), test=test)
+        data_context = DataContext(train = (X_train, Y_train), test=test)
         # print(X_train)
-        evolution = Evolution(data_context=data_context, max_runtime= 100, seed=1234)
+        evolution = Evolution(data_context=data_context, max_runtime= 100, seed=1234, number_of_evolutions=5)
 
         self.assertTrue(isinstance(evolution, Evolution))
 

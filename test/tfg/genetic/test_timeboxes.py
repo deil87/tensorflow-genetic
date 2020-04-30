@@ -49,9 +49,10 @@ class TimeboxesTestCase(unittest.TestCase):
 
     def test_timeboxes_exponential_exact(self):
         max_runtime = 10000
-        segments = Evolution(None, None, 1234).generate_timeboxes(3, max_runtime)
+        segments = Evolution(None, None, 1234).calculate_exp_segments(3, max_runtime)
 
         sum_of_segments = sum(segments)
+        print(segments)
         self.assertEqual(max_runtime, sum_of_segments)
 
     # def test_timeboxes(self):

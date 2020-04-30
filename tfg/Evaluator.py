@@ -10,8 +10,8 @@ class Evaluator:
     def __init__(self):
         print("Evaluator has been instantiated")
 
-    def evaluate(self, individual:CNNIndividual, data_context):
-        (X_train, Y_train) = data_context.get_train()
+    def evaluate(self, individual:CNNIndividual, sample_data_ctx):
+        (X_train, Y_train) = sample_data_ctx.get_train()
 
         # Fit datagen
         datagen = individual.get_datagen()
@@ -32,7 +32,7 @@ class Evaluator:
                             # monitoring validation loss and metrics
                             # at the end of each epoch
                             verbose=2,
-                            validation_data=data_context.get_valid())
+                            validation_data=sample_data_ctx.get_valid())
 
         # history = model.fit_generator(datagen.flow(X_train, Y_train, batch_size=batch_size, seed=2345),
         #                               epochs=epochs, validation_data=data_context.get_valid(),

@@ -5,7 +5,7 @@ import numpy as np
 import toolz
 from keras_preprocessing.image import ImageDataGenerator
 
-from tfg.DataContext import DataContext
+from tfg.DataContext import DataContext, SampleDataContext
 from tfg.Evaluator import Evaluator, EvaluatedIndividual
 from tfg.genetic.Mutator import Mutator
 from tfg.genetic.Population import Population
@@ -20,6 +20,8 @@ from numpy.random import seed as np_random_seed
 import random
 import os
 import time
+
+from sklearn.model_selection import train_test_split
 
 
 class Evolution:
@@ -45,7 +47,7 @@ class Evolution:
 
     """
 
-    def __init__(self, data_context, max_runtime, seed, number_of_evolutions = 3):
+    def __init__(self, data_context:DataContext, max_runtime, seed, number_of_evolutions = 3):
         """Configures evolution process for training.
 
                 # Arguments
@@ -66,7 +68,7 @@ class Evolution:
         tf.random.set_seed(seed)
 
     # credit goes to Georgy Chichladze. Thanks!
-    def generate_timeboxes(self, n_boxes, max_runtime):
+    def calculate_exp_segments(self, n_boxes, max_runtime):
 
         def f(coefs, x):
             return coefs * np.exp(x)
@@ -100,20 +102,34 @@ class Evolution:
         ])
 
 
-        timeboxes = self.generate_timeboxes(self.__number_of_evolutions, self.__max_runtime)
+        # Get timebox segments reversed ( descending lengths)
+        timeboxes = self.calculate_exp_segments(self.__number_of_evolutions, self.__max_runtime)[::-1]
 
-        for tb_idx, timebox in enumerate(timeboxes):
+        # Get databox segments reversed ( descending lengths)
+        databoxes = list(map( round, self.calculate_exp_segments(self.__number_of_evolutions, self.__data_context.train_nrows())))
+        assert sum(databoxes) == self.__data_context.train_nrows()
+
+        for (tb_idx, timebox), databox in zip(enumerate(timeboxes), databoxes):
             start_tb_time = self.current_seconds_time()
+
+            # Sample corresponding to an evolution number
+            (X_train, Y_train) = self.__data_context.get_train()
+            X_train_smpl = X_train[:int(databox)]
+            Y_train_smpl = Y_train[:int(databox)]
 
             generation_number = 1
             while self.current_seconds_time() - start_tb_time < timebox:
+                # Split randomly into train and the validation set for the fitting
+                X_train, X_val, Y_train, Y_val = train_test_split(X_train_smpl, Y_train_smpl, test_size=0.2, shuffle=True)
+                sample_data_ctx = SampleDataContext(train=(X_train, Y_train), valid=(X_val, Y_val))
+
                 #Build population
                 individuals = list(map(lambda cnn_ind: cnn_ind.build(self.__seed), population.get_individuals()))
                 print("Individuals" + str(individuals))
 
                 # Evaluate population
                 evaluator = Evaluator()
-                ev_individuals = list(map(lambda cnn_ind: evaluator.evaluate(cnn_ind, self.__data_context), individuals))
+                ev_individuals = list(map(lambda cnn_ind: evaluator.evaluate(cnn_ind, sample_data_ctx), individuals))
 
                 # Print evaluation results
                 self.__print_ev_individuals(ev_individuals)
@@ -130,7 +146,7 @@ class Evolution:
                 offspring = list(map(lambda offspring_genome: offspring_genome.build(self.__seed), offspring_genomes))
 
                 # Evaluate offspring
-                ev_offspring = list(map(lambda offspring_ind: evaluator.evaluate(offspring_ind, self.__data_context), offspring))
+                ev_offspring = list(map(lambda offspring_ind: evaluator.evaluate(offspring_ind, sample_data_ctx), offspring))
 
                 print("\n Evaluated offspring \n")
                 self.__print_ev_individuals(ev_offspring)
@@ -148,7 +164,7 @@ class Evolution:
                 print("Evolution #{} | generation #{} is finished".format(tb_idx, generation_number))
                 generation_number += 1
 
-        return self
+        return population
 
 
     def __print_ev_individuals(self, ev_individuals):
