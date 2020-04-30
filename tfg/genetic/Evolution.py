@@ -83,10 +83,12 @@ class Evolution:
         return lengths(c)
 
     # current_milli_time = lambda: int(round(time.time() * 1000))
-    current_seconds_time = lambda self: int(round(time.time()))
+    current_secs_time = lambda self: int(round(time.time()))
 
     def run(self):
         print("Evolution has been launched")
+        start_run_time = self.current_secs_time()
+
         population = Population([
             CNNGenome(
                 [AugmentationGene(), SequentialModelGene(), OptimizerGene(), OutputActivationGene()]
@@ -109,26 +111,27 @@ class Evolution:
         databoxes = list(map( round, self.calculate_exp_segments(self.__number_of_evolutions, self.__data_context.train_nrows())))
         assert sum(databoxes) == self.__data_context.train_nrows()
 
-        for (tb_idx, timebox), databox in zip(enumerate(timeboxes), databoxes):
-            start_tb_time = self.current_seconds_time()
+        best_individual = None
 
-            # Sample corresponding to an evolution number
-            (X_train, Y_train) = self.__data_context.get_train()
-            X_train_smpl = X_train[:int(databox)]
-            Y_train_smpl = Y_train[:int(databox)]
+        evaluator = Evaluator()
 
+        for (evolution_number, timebox), databox in zip(enumerate(timeboxes, 1), databoxes):
             generation_number = 1
-            while self.current_seconds_time() - start_tb_time < timebox:
+            start_evolution_time = self.current_secs_time()
+
+            X_train_smpl, Y_train_smpl = self.databox_train_sample(databox)
+
+            while self.current_secs_time() - start_evolution_time < timebox \
+                    and self.current_secs_time() - start_run_time < self.__max_runtime:
+
                 # Split randomly into train and the validation set for the fitting
-                X_train, X_val, Y_train, Y_val = train_test_split(X_train_smpl, Y_train_smpl, test_size=0.2, shuffle=True)
-                sample_data_ctx = SampleDataContext(train=(X_train, Y_train), valid=(X_val, Y_val))
+                sample_data_ctx = self.get_shuffled_sample_data_ctx(X_train_smpl, Y_train_smpl)
 
                 #Build population
                 individuals = list(map(lambda cnn_ind: cnn_ind.build(self.__seed), population.get_individuals()))
                 print("Individuals" + str(individuals))
 
                 # Evaluate population
-                evaluator = Evaluator()
                 ev_individuals = list(map(lambda cnn_ind: evaluator.evaluate(cnn_ind, sample_data_ctx), individuals))
 
                 # Print evaluation results
@@ -158,14 +161,32 @@ class Evolution:
                 survived = toolz.topk(len(individuals), expanded_individuals,
                                      key=lambda ev_individual: -ev_individual.get_fitness().get_valid_loss())
 
-                survived_genomes = list(map(lambda survived_ind: mutator.mutate(survived_ind.get_original_genome()), survived))
+                # Update best individual
+                best_individual = toolz.topk(1, survived,
+                                      key=lambda ev_individual: -ev_individual.get_fitness().get_valid_loss())
+
+                survived_genomes = list(map(lambda survived_ind: survived_ind.get_original_genome(), survived))
 
                 population = Population(individuals=survived_genomes)
-                print("Evolution #{} | generation #{} is finished".format(tb_idx, generation_number))
+                print("Evolution #{} | generation #{} is finished".format(evolution_number, generation_number))
                 generation_number += 1
 
-        return population
+        # Evaluate best individual on whole data
+        total_sample_data_ctx = self.get_shuffled_sample_data_ctx(*self.__data_context.get_train())
+        best_individual_evaluated = evaluator.evaluate(best_individual[0].get_individual(), total_sample_data_ctx)
 
+        return (population, best_individual_evaluated)
+
+    def get_shuffled_sample_data_ctx(self, X_train_smpl, Y_train_smpl):
+        X_train, X_val, Y_train, Y_val = train_test_split(X_train_smpl, Y_train_smpl, test_size=0.2, shuffle=True)
+        sample_data_ctx = SampleDataContext(train=(X_train, Y_train), valid=(X_val, Y_val))
+        return sample_data_ctx
+
+    def databox_train_sample(self, databox):
+        (X_train, Y_train) = self.__data_context.get_train()
+        X_train_smpl = X_train[:int(databox)]
+        Y_train_smpl = Y_train[:int(databox)]
+        return X_train_smpl, Y_train_smpl
 
     def __print_ev_individuals(self, ev_individuals):
         print("\n")

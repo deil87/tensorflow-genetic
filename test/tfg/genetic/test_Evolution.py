@@ -55,11 +55,15 @@ class EvolutionTestCase(unittest.TestCase):
 
         data_context = DataContext(train = (X_train, Y_train), test=test)
         # print(X_train)
-        evolution = Evolution(data_context=data_context, max_runtime= 100, seed=1234, number_of_evolutions=5)
+        evolution = Evolution(data_context=data_context, max_runtime= 20, seed=1234, number_of_evolutions=5)
 
         self.assertTrue(isinstance(evolution, Evolution))
 
-        evolution.run()
+        population, best_individual = evolution.run()
+
+        best_individual.get_individual().get_model().summary()
+
+        print("Best evaluated individual: valid loss = {}".format(best_individual.get_fitness().get_valid_loss()))
 
 
 if __name__ == '__main__':

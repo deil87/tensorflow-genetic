@@ -13,7 +13,6 @@ class DataContext:
                             test: X_test
 
                         """
-        print("DataContext has been initialized")
         self.__train = train
         self.__test = test
 
@@ -38,7 +37,6 @@ class SampleDataContext:
                             valid: Tuple (X_valid, Y_valid)
 
                         """
-        print("SampleDataContext has been initialized")
         self.__train = train
         self.__valid = valid
 
